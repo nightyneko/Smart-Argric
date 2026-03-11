@@ -61,7 +61,7 @@ main-build: Project_Elec.elf secondary-outputs
 
 # Tool invocations
 Project_Elec.elf Project_Elec.map: $(OBJS) $(USER_OBJS) /home/zero/STM32CubeIDE/workspace_2.0.0/Project_Elec/STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Project_Elec.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/zero/STM32CubeIDE/workspace_2.0.0/Project_Elec/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Project_Elec.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "Project_Elec.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/zero/STM32CubeIDE/workspace_2.0.0/Project_Elec/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Project_Elec.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -1,0 +1,1363 @@
+[
+    {
+        "id": "tab_plant_iot_pro",
+        "type": "tab",
+        "label": "Smart Plant Dashboard (Pro)",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "mqtt_broker_pro",
+        "type": "mqtt-broker",
+        "name": "Local ESP32 Broker",
+        "broker": "localhost",
+        "port": 1883,
+        "autoConnect": true,
+        "user": "zero",
+        "pass": "hello123456"
+    },
+    {
+        "id": "ui_base_pro",
+        "type": "ui-base",
+        "name": "Plant System Pro",
+        "path": "/dashboard",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "navigationStyle": "default",
+        "titleBarStyle": "default"
+    },
+    {
+        "id": "ui_theme_pro",
+        "type": "ui-theme",
+        "name": "Default Theme",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094CE",
+            "bgPage": "#eeeeee",
+            "groupBg": "#ffffff",
+            "groupOutline": "#cccccc"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "4px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "ui_page_main_pro",
+        "type": "ui-page",
+        "name": "System Overview",
+        "ui": "ui_base_pro",
+        "path": "/home",
+        "theme": "ui_theme_pro",
+        "layout": "grid",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": 0,
+                "cols": 3
+            },
+            {
+                "name": "Tablet",
+                "px": 576,
+                "cols": 6
+            },
+            {
+                "name": "Small Desktop",
+                "px": 768,
+                "cols": 9
+            },
+            {
+                "name": "Desktop",
+                "px": 1024,
+                "cols": 12
+            }
+        ],
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "ui_group_gauges",
+        "type": "ui-group",
+        "name": "Live Gauges",
+        "page": "ui_page_main_pro",
+        "width": "12",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
+        "id": "ui_group_charts",
+        "type": "ui-group",
+        "name": "Historical Charts & Stats",
+        "page": "ui_page_main_pro",
+        "width": "8",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
+        "id": "mqtt_in_sensors_pro",
+        "type": "mqtt in",
+        "z": "tab_plant_iot_pro",
+        "name": "STM32 Sensors",
+        "topic": "stm32/sensors",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "mqtt_broker_pro",
+        "x": 100,
+        "y": 200,
+        "wires": [
+            [
+                "fn_telemetry_pro"
+            ]
+        ]
+    },
+    {
+        "id": "fn_telemetry_pro",
+        "type": "function",
+        "z": "tab_plant_iot_pro",
+        "name": "Parse & Calculate Stats",
+        "func": "\nvar p = msg.payload;\n\n// Gauges with dynamic UI update properties for FlowFuse Dashboard\nvar msg_h = { \n    payload: p.h || 0, \n    topic: 'Health',\n    ui_update: { segments: [ { from: 0, color: \"#ea5353\" }, { from: 40, color: \"#ffc800\" }, { from: 80, color: \"#5cd65c\" } ] }\n};\n\nvar msg_s_gauge = { \n    payload: p.s || 0, \n    ui_update: { segments: [ { from: 0, color: \"#ea5353\" }, { from: p.sl || 30, color: \"#5cd65c\" }, { from: p.sh || 45, color: \"#ffc800\" } ] }\n};\nvar msg_s_chart = [ { payload: p.s || 0, topic: 'Soil Moisture' }, { payload: p.sl || 0, topic: 'Low Limit' }, { payload: p.sh || 0, topic: 'High Limit' } ];\n\n\nvar msg_t_gauge = { \n    payload: p.t || 0, \n    ui_update: { segments: [ { from: 0, color: \"#0094CE\" }, { from: p.tl || 28, color: \"#5cd65c\" }, { from: p.th || 30, color: \"#ea5353\" } ] }\n};\nvar msg_t_chart = [ { payload: p.t || 0, topic: 'Temperature' }, { payload: p.tl || 0, topic: 'Low Limit' }, { payload: p.th || 0, topic: 'High Limit' } ];\n\n\nvar msg_l_gauge = { \n    payload: p.l || 0, \n    ui_update: { segments: [ { from: 0, color: \"#ea5353\" }, { from: p.ll || 30, color: \"#5cd65c\" }, { from: p.lh || 50, color: \"#ffc800\" } ] }\n};\nvar msg_l_chart = [ { payload: p.l || 0, topic: 'Light' }, { payload: p.ll || 0, topic: 'Low Limit' }, { payload: p.lh || 0, topic: 'High Limit' } ];\n\n// Stats\nvar stat_h = { payload: \"Current Health: \" + (p.h||0) + \"%\" };\nvar stat_s = { payload: \"Current Soil: \" + (p.s||0) + \"%\" };\nvar stat_t = { payload: \"Current Temp: \" + (p.t||0) + \"\u00b0C\" };\nvar stat_l = { payload: \"Current Light: \" + (p.l||0) + \"%\" };\n\n// Status\nvar pf_status = p.pf ? \"CRITICAL: PUMP ERROR!\" : \"System Normal\";\nvar am_status = p.am ? \"AUTO\" : \"MANUAL\";\nvar day_status = p.day ? \"DAY MODE\" : \"NIGHT MODE\";\nvar msg_status = { payload: pf_status + \" | \" + am_status + \" | \" + day_status };\nvar msg_dry = { payload: p.dv };\nvar msg_wet = { payload: p.wv };\n\n\nvar act_status = { payload: \"Pump: \" + (p.p ? \"ON\" : \"OFF\") + \" | Fan: \" + (p.f ? \"ON\" : \"OFF\") + \" | Light: \" + (p.pl ? \"ON\" : \"OFF\") };\n\n// Threshold Texts - Force string conversion\nvar txt_sl = { payload: (p.sl || 0) + \"%\" };\nvar txt_sh = { payload: (p.sh || 0) + \"%\" };\nvar txt_tl = { payload: (p.tl || 0) + \"\u00b0C\" };\nvar txt_th = { payload: (p.th || 0) + \"\u00b0C\" };\nvar txt_ll = { payload: (p.ll || 0) + \"%\" };\nvar txt_lh = { payload: (p.lh || 0) + \"%\" };\n\nreturn [\n    msg_h, \n    [msg_s_gauge, ...msg_s_chart], \n    [msg_t_gauge, ...msg_t_chart], \n    [msg_l_gauge, ...msg_l_chart], \n    stat_h, stat_s, stat_t, stat_l, \n    msg_status, msg_dry, msg_wet, \n    txt_sl, txt_sh, txt_tl, txt_th, txt_ll, txt_lh, act_status\n];\n",
+        "outputs": 18,
+        "x": 300,
+        "y": 200,
+        "wires": [
+            [
+                "ui_gauge_health_pro",
+                "ui_chart_health_pro"
+            ],
+            [
+                "ui_gauge_soil_pro",
+                "ui_chart_soil_pro"
+            ],
+            [
+                "ui_gauge_temp_pro",
+                "ui_chart_temp_pro"
+            ],
+            [
+                "ui_gauge_light_pro",
+                "ui_chart_light_pro"
+            ],
+            [
+                "ui_text_stat_h"
+            ],
+            [
+                "ui_text_stat_s"
+            ],
+            [
+                "ui_text_stat_t"
+            ],
+            [
+                "ui_text_stat_l"
+            ],
+            [
+                "ui_text_status_pro"
+            ],
+            [
+                "ui_text_dry_pro"
+            ],
+            [
+                "ui_text_wet_pro"
+            ],
+            [
+                "ui_text_th_sl"
+            ],
+            [
+                "ui_text_th_sh"
+            ],
+            [
+                "ui_text_th_tl"
+            ],
+            [
+                "ui_text_th_th"
+            ],
+            [
+                "ui_text_th_ll"
+            ],
+            [
+                "ui_text_th_lh"
+            ],
+            [
+                "ui_text_actuators"
+            ]
+        ]
+    },
+    {
+        "id": "ui_gauge_health_pro",
+        "type": "ui-gauge",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_gauges",
+        "name": "Health %",
+        "title": "Health",
+        "value": "payload",
+        "valueType": "msg",
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "units": "%",
+        "min": 0,
+        "max": 100,
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "40.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "70.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "x": 600,
+        "y": 40,
+        "wires": [
+            []
+        ],
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "width": "3",
+        "height": "3",
+        "order": 1
+    },
+    {
+        "id": "ui_gauge_soil_pro",
+        "type": "ui-gauge",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_gauges",
+        "name": "Soil %",
+        "title": "Soil Moisture",
+        "value": "payload",
+        "valueType": "msg",
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "units": "%",
+        "min": 0,
+        "max": 100,
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "40.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "70.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "x": 600,
+        "y": 80,
+        "wires": [
+            []
+        ],
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "width": "3",
+        "height": "3",
+        "order": 3
+    },
+    {
+        "id": "ui_gauge_temp_pro",
+        "type": "ui-gauge",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_gauges",
+        "name": "Temp C",
+        "title": "Temperature",
+        "value": "payload",
+        "valueType": "msg",
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "units": "\u00b0C",
+        "min": 0,
+        "max": 50,
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "20.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "35.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "x": 600,
+        "y": 120,
+        "wires": [
+            []
+        ],
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "width": "3",
+        "height": "3",
+        "order": 4
+    },
+    {
+        "id": "ui_gauge_light_pro",
+        "type": "ui-gauge",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_gauges",
+        "name": "Light %",
+        "title": "Light Intensity",
+        "value": "payload",
+        "valueType": "msg",
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "units": "%",
+        "min": 0,
+        "max": 100,
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "40.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "70.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "x": 600,
+        "y": 160,
+        "wires": [
+            []
+        ],
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "width": "3",
+        "height": "3",
+        "order": 2
+    },
+    {
+        "id": "ui_chart_health_pro",
+        "type": "ui-chart",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_charts",
+        "name": "Health Chart",
+        "label": "Health Chart",
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "action": "append",
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "x": 600,
+        "y": 200,
+        "wires": [
+            []
+        ],
+        "width": "8",
+        "height": "5",
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "interpolation": "linear",
+        "stackSeries": false,
+        "ymin": 0,
+        "ymax": 100,
+        "order": 1
+    },
+    {
+        "id": "ui_text_stat_h",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_charts",
+        "name": "Health Stats",
+        "label": "Health Stats",
+        "format": "{{msg.payload}}",
+        "value": "payload",
+        "valueType": "msg",
+        "layout": "row-spread",
+        "x": 600,
+        "y": 240,
+        "wires": [],
+        "width": "8",
+        "order": 5,
+        "height": "1"
+    },
+    {
+        "id": "ui_chart_soil_pro",
+        "type": "ui-chart",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_charts",
+        "name": "Soil Chart",
+        "label": "Soil Chart",
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "action": "append",
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "x": 600,
+        "y": 280,
+        "wires": [
+            []
+        ],
+        "width": "8",
+        "height": "5",
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "interpolation": "linear",
+        "stackSeries": false,
+        "ymin": 0,
+        "ymax": 100,
+        "order": 3
+    },
+    {
+        "id": "ui_text_stat_s",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Soil Stats",
+        "label": "Soil Stats",
+        "format": "{{msg.payload}}",
+        "value": "payload",
+        "valueType": "msg",
+        "layout": "row-spread",
+        "x": 600,
+        "y": 320,
+        "wires": [],
+        "width": "4",
+        "order": 10,
+        "height": "1"
+    },
+    {
+        "id": "ui_chart_temp_pro",
+        "type": "ui-chart",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_charts",
+        "name": "Temp Chart",
+        "label": "Temp Chart",
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "action": "append",
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "x": 600,
+        "y": 360,
+        "wires": [
+            []
+        ],
+        "width": "8",
+        "height": "5",
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "interpolation": "linear",
+        "stackSeries": false,
+        "ymin": 0,
+        "ymax": 50,
+        "order": 4
+    },
+    {
+        "id": "ui_text_stat_t",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Temp Stats",
+        "label": "Temp Stats",
+        "format": "{{msg.payload}}",
+        "value": "payload",
+        "valueType": "msg",
+        "layout": "row-spread",
+        "x": 600,
+        "y": 400,
+        "wires": [],
+        "width": "4",
+        "order": 12,
+        "height": "1"
+    },
+    {
+        "id": "ui_chart_light_pro",
+        "type": "ui-chart",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_charts",
+        "name": "Light Chart",
+        "label": "Light Chart",
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "action": "append",
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "x": 600,
+        "y": 440,
+        "wires": [
+            []
+        ],
+        "width": "8",
+        "height": "5",
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "interpolation": "linear",
+        "stackSeries": false,
+        "ymin": 0,
+        "ymax": 100,
+        "order": 2
+    },
+    {
+        "id": "ui_text_stat_l",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Light Stats",
+        "label": "Light Stats",
+        "format": "{{msg.payload}}",
+        "value": "payload",
+        "valueType": "msg",
+        "layout": "row-spread",
+        "x": 600,
+        "y": 480,
+        "wires": [],
+        "width": "4",
+        "order": 9,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_status_pro",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "System Status",
+        "label": "Status:",
+        "format": "{{msg.payload}}",
+        "value": "payload",
+        "valueType": "msg",
+        "layout": "row-spread",
+        "x": 600,
+        "y": 520,
+        "wires": [],
+        "width": "4",
+        "order": 11,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_dry_pro",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Dry Cal Point",
+        "label": "Dry Cal Point:",
+        "format": "{{msg.payload}}",
+        "value": "payload",
+        "valueType": "msg",
+        "layout": "row-spread",
+        "x": 600,
+        "y": 560,
+        "wires": [],
+        "width": "4",
+        "order": 8,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_wet_pro",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Wet Cal Point",
+        "label": "Wet Cal Point:",
+        "format": "{{msg.payload}}",
+        "value": "payload",
+        "valueType": "msg",
+        "layout": "row-spread",
+        "x": 600,
+        "y": 600,
+        "wires": [],
+        "width": "4",
+        "order": 13,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_auto_on",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Auto ON",
+        "label": "Enable Auto Mode",
+        "format": "button",
+        "payload": "1",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 300,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 20,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_pump_on",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Pump ON",
+        "label": "Pump ON",
+        "format": "button",
+        "payload": "3",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 340,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 30,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_pump_off",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Pump OFF",
+        "label": "Pump OFF",
+        "format": "button",
+        "payload": "2",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 380,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 29,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_fan_on",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Fan ON",
+        "label": "Fan ON",
+        "format": "button",
+        "payload": "5",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 420,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 25,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_fan_off",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Fan OFF",
+        "label": "Fan OFF",
+        "format": "button",
+        "payload": "4",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 460,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 24,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_light_on",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Light ON",
+        "label": "Light ON",
+        "format": "button",
+        "payload": "7",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 500,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 27,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_light_off",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Light OFF",
+        "label": "Light OFF",
+        "format": "button",
+        "payload": "6",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 540,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 26,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_cal_dry_pro",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Cal Dry",
+        "label": "Calibrate DRY (Air)",
+        "format": "button",
+        "payload": "8",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 580,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 21,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_cal_wet_pro",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Cal Wet",
+        "label": "Calibrate WET (Water)",
+        "format": "button",
+        "payload": "9",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 620,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 22,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_reset_fs_pro",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Reset FS",
+        "label": "Reset Pump Failsafe",
+        "format": "button",
+        "payload": "10",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 660,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 31,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_reset_stats",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Reset Stats",
+        "label": "Reset Graph Stats",
+        "format": "button",
+        "payload": "reset",
+        "payloadType": "str",
+        "x": 100,
+        "y": 700,
+        "wires": [
+            [
+                "fn_cmd_reset_stats"
+            ]
+        ],
+        "width": "2",
+        "order": 32,
+        "height": "1"
+    },
+    {
+        "id": "fn_cmd_reset_stats",
+        "type": "function",
+        "z": "tab_plant_iot_pro",
+        "func": "flow.set('plant_stats', undefined); return null;",
+        "x": 300,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "mqtt_out_cmd_pro",
+        "type": "mqtt out",
+        "z": "tab_plant_iot_pro",
+        "name": "STM32 Commands",
+        "topic": "stm32/commands",
+        "qos": "0",
+        "retain": "false",
+        "broker": "mqtt_broker_pro",
+        "x": 800,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "global_config",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "@flowfuse/node-red-dashboard": "1.30.2"
+        }
+    },
+    {
+        "id": "ui_slider_11",
+        "type": "ui-slider",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Soil Low (%)",
+        "label": "Soil Low (%)",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "topic": "11",
+        "topicType": "str",
+        "passthru": false,
+        "outs": "end",
+        "x": 100,
+        "y": 800,
+        "wires": [
+            [
+                "fn_threshold_format"
+            ]
+        ],
+        "width": "4",
+        "thumbLabel": true,
+        "showValue": true,
+        "alwaysShowValue": true,
+        "order": 1,
+        "height": "1"
+    },
+    {
+        "id": "ui_slider_12",
+        "type": "ui-slider",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Soil High (%)",
+        "label": "Soil High (%)",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "topic": "12",
+        "topicType": "str",
+        "passthru": false,
+        "outs": "end",
+        "x": 100,
+        "y": 840,
+        "wires": [
+            [
+                "fn_threshold_format"
+            ]
+        ],
+        "width": "4",
+        "thumbLabel": true,
+        "showValue": true,
+        "alwaysShowValue": true,
+        "order": 2,
+        "height": "1"
+    },
+    {
+        "id": "ui_slider_13",
+        "type": "ui-slider",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Temp Low (\u00b0C)",
+        "label": "Temp Low (\u00b0C)",
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "topic": "13",
+        "topicType": "str",
+        "passthru": false,
+        "outs": "end",
+        "x": 100,
+        "y": 880,
+        "wires": [
+            [
+                "fn_threshold_format"
+            ]
+        ],
+        "width": "4",
+        "thumbLabel": true,
+        "showValue": true,
+        "alwaysShowValue": true,
+        "order": 3,
+        "height": "1"
+    },
+    {
+        "id": "ui_slider_14",
+        "type": "ui-slider",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Temp High (\u00b0C)",
+        "label": "Temp High (\u00b0C)",
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "topic": "14",
+        "topicType": "str",
+        "passthru": false,
+        "outs": "end",
+        "x": 100,
+        "y": 920,
+        "wires": [
+            [
+                "fn_threshold_format"
+            ]
+        ],
+        "width": "4",
+        "thumbLabel": true,
+        "showValue": true,
+        "alwaysShowValue": true,
+        "order": 4,
+        "height": "1"
+    },
+    {
+        "id": "ui_slider_15",
+        "type": "ui-slider",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Light Low (%)",
+        "label": "Light Low (%)",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "topic": "15",
+        "topicType": "str",
+        "passthru": false,
+        "outs": "end",
+        "x": 100,
+        "y": 960,
+        "wires": [
+            [
+                "fn_threshold_format"
+            ]
+        ],
+        "width": "4",
+        "thumbLabel": true,
+        "showValue": true,
+        "alwaysShowValue": true,
+        "order": 5,
+        "height": "1"
+    },
+    {
+        "id": "ui_slider_16",
+        "type": "ui-slider",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Light High (%)",
+        "label": "Light High (%)",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "topic": "16",
+        "topicType": "str",
+        "passthru": false,
+        "outs": "end",
+        "x": 100,
+        "y": 1000,
+        "wires": [
+            [
+                "fn_threshold_format"
+            ]
+        ],
+        "width": "4",
+        "thumbLabel": true,
+        "showValue": true,
+        "alwaysShowValue": true,
+        "order": 6,
+        "height": "1"
+    },
+    {
+        "id": "fn_threshold_format",
+        "type": "function",
+        "z": "tab_plant_iot_pro",
+        "name": "Format Cmd",
+        "func": "\nif (msg.payload !== undefined && msg.payload !== null) {\n    // Extract actual numeric value if payload is an object\n    var val = typeof msg.payload === 'object' ? msg.payload.value || msg.payload : msg.payload;\n    msg.payload = msg.topic + ':' + String(val);\n    return msg;\n}\nreturn null;\n",
+        "outputs": 1,
+        "x": 300,
+        "y": 800,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ]
+    },
+    {
+        "id": "ui_btn_day_mode",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Day Mode",
+        "label": "Set Day Mode (Auto Light ON)",
+        "format": "button",
+        "payload": "17",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 580,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 23,
+        "height": "1"
+    },
+    {
+        "id": "ui_btn_night_mode",
+        "type": "ui-button",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Night Mode",
+        "label": "Set Night Mode (Auto Light OFF)",
+        "format": "button",
+        "payload": "18",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 620,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ],
+        "width": "2",
+        "order": 28,
+        "height": "1"
+    },
+    {
+        "id": "inject_morning",
+        "type": "inject",
+        "z": "tab_plant_iot_pro",
+        "name": "Morning Schedule (06:00)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 06 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "stm32/commands",
+        "payload": "17",
+        "payloadType": "str",
+        "x": 130,
+        "y": 680,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ]
+    },
+    {
+        "id": "inject_night",
+        "type": "inject",
+        "z": "tab_plant_iot_pro",
+        "name": "Night Schedule (20:00)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 20 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "stm32/commands",
+        "payload": "18",
+        "payloadType": "str",
+        "x": 120,
+        "y": 720,
+        "wires": [
+            [
+                "mqtt_out_cmd_pro"
+            ]
+        ]
+    },
+    {
+        "id": "ui_text_th_sl",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "ui_text_th_sl",
+        "label": "Soil Low Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "width": "4",
+        "order": 17,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_th_sh",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "ui_text_th_sh",
+        "label": "Soil High Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "width": "4",
+        "order": 16,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_th_tl",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "ui_text_th_tl",
+        "label": "Temp Low Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "width": "4",
+        "order": 19,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_th_th",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "ui_text_th_th",
+        "label": "Temp High Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "width": "4",
+        "order": 18,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_th_ll",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "ui_text_th_ll",
+        "label": "Light Low Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "width": "4",
+        "order": 15,
+        "height": "1"
+    },
+    {
+        "id": "ui_text_th_lh",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "ui_text_th_lh",
+        "label": "Light High Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "width": "4",
+        "order": 14,
+        "height": "1"
+    },
+    {
+        "id": "ui_group_settings",
+        "type": "ui-group",
+        "name": "Settings & Controls",
+        "page": "ui_page_main_pro",
+        "width": "4",
+        "order": 3
+    },
+    {
+        "id": "ui_text_actuators",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "name": "Actuators Status",
+        "label": "Actuators:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "width": "4",
+        "order": 7,
+        "height": "1"
+    }
+]
