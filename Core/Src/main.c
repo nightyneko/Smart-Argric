@@ -62,6 +62,14 @@ BMP280_HandleTypedef bmp280;
 float temperature, pressure, humidity;
 int soil_perc = 0, light_perc = 0;
 
+// --- Moving Average Filters ---
+#define MA_SIZE 5
+int soil_ma[MA_SIZE] = {0};
+int light_ma[MA_SIZE] = {0};
+float temp_ma[MA_SIZE] = {0};
+uint8_t ma_idx = 0;
+uint8_t ma_count = 0;
+
 // --- DMA Circular Buffer ---
 #define DMA_RX_BUF_SIZE 256
 uint8_t dma_rx_buf[DMA_RX_BUF_SIZE];
@@ -86,11 +94,11 @@ int wet_val = 3500; // Default for water
 
 // Schmitt Trigger Thresholds
 int soil_low_threshold = 30;
-int soil_high_threshold = 45;
+int soil_high_threshold = 50;
 float temp_high_threshold = 30.0;
-float temp_low_threshold = 28.0;
+float temp_low_threshold = 25.0;
 int light_low_threshold = 30;
-int light_high_threshold = 50;
+int light_high_threshold = 73;
 const int SOIL_CRITICAL_LOW = 0;   // 0% moisture
 const int SOIL_CRITICAL_HIGH = 100; // 100% moisture (flooded)
 const int TEMP_CRITICAL_LOW = 0;   // 5 degrees C (freezing danger)
@@ -124,6 +132,7 @@ static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 uint16_t Read_ADC_Channel(uint32_t channel);
+void Apply_Sensor_Smoothing(int current_soil, int current_light, float current_temp);
 int32_t constrain(int32_t value, int32_t min_val, int32_t max_val);
 int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 void Process_Command(char* cmd);
@@ -259,16 +268,19 @@ int main(void)
           bmp280_read_float(&bmp280, &temperature, &pressure, &humidity);
 
           // --- 2. CALCULATE PERCENTAGES (Using Calibration) ---
-          soil_perc = 100 - ((raw_moisture - wet_val) * 100 / (dry_val - wet_val));
+          int current_soil = 100 - ((raw_moisture - wet_val) * 100 / (dry_val - wet_val));
           
           int bright_value = 4095;
           int dark_value = 100;
-          light_perc = 100 - ((raw_light - bright_value) * 100 / (dark_value - bright_value));
+          int current_light = 100 - ((raw_light - bright_value) * 100 / (dark_value - bright_value));
 
-          if (soil_perc > 100) { soil_perc = 100; }
-          if (soil_perc < 0)   { soil_perc = 0; }
-          if (light_perc > 100) { light_perc = 100; }
-          if (light_perc < 0)   { light_perc = 0; }
+          if (current_soil > 100) { current_soil = 100; }
+          if (current_soil < 0)   { current_soil = 0; }
+          if (current_light > 100) { current_light = 100; }
+          if (current_light < 0)   { current_light = 0; }
+
+          // --- 2.5 APPLY MOVING AVERAGE FILTER ---
+          Apply_Sensor_Smoothing(current_soil, current_light, temperature);
 
           // --- 3. HEALTH SCORING LOGIC ---
 
@@ -980,6 +992,31 @@ int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t 
         return out_min;
     }
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void Apply_Sensor_Smoothing(int current_soil, int current_light, float current_temp) {
+    // Push new data into the sliding window arrays
+    soil_ma[ma_idx] = current_soil;
+    light_ma[ma_idx] = current_light;
+    temp_ma[ma_idx] = current_temp;
+    
+    // Increment circular index
+    ma_idx = (ma_idx + 1) % MA_SIZE;
+    if (ma_count < MA_SIZE) ma_count++;
+
+    // Calculate the averages
+    long soil_sum = 0, light_sum = 0;
+    float temp_sum = 0.0f;
+    for (int i = 0; i < ma_count; i++) {
+        soil_sum += soil_ma[i];
+        light_sum += light_ma[i];
+        temp_sum += temp_ma[i];
+    }
+    
+    // Update the global variables used by the rest of the app
+    soil_perc = (int)(soil_sum / ma_count);
+    light_perc = (int)(light_sum / ma_count);
+    temperature = temp_sum / ma_count;
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
