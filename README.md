@@ -3,83 +3,72 @@
 ## Overview
 This is an IoT-based environmental control system designed to maintain optimal conditions for plants. It monitors temperature, pressure, humidity, light intensity, and soil moisture, while controlling actuators like a fan, water pump, and OLED display. The system is integrated into a central dashboard via Node-RED using the MQTT protocol.
 
+## Key Features
+- **Intelligent Health Scoring:** Calculates a real-time "Plant Health %" using weighted biological factors (50% Soil, 35% Temp, 15% Light).
+- **Advanced Smoothing:** Implements Moving Average Filters (Size 5) on all sensors to prevent jitter.
+- **Hardware Failsafe:** Detects pump hardware errors or empty reservoirs if soil moisture doesn't improve after 5 minutes of active irrigation.
+- **EMI Resilience:** Custom UART error handling and EIE bit management to prevent system lockups caused by motor noise.
+- **Dynamic Calibration:** Remote commands allow for "Dry" and "Wet" calibration of the soil sensor on-the-fly.
+- **Visual Feedback:** 128x64 OLED display showing sensor telemetry, current state, and a dynamic "Plant Avatar" (Happy/Sad).
+
 ## System Architecture
 
 ### 1. Main Controller: STM32L432KC
 The STM32 acts as the "brain" of the system, handling real-time sensor data acquisition and hardware control.
 - **Sensors:**
-  - **BMP280:** Measures temperature, atmospheric pressure, and humidity (connected via I2C3).
-  - **LDR (Light Dependent Resistor):** Measures ambient light intensity (connected via ADC1 Channel 6 / PA1).
-  - **Soil Moisture Sensor:** Measures the water content in the soil (connected via ADC1 Channel 5 / PA0).
+  - **BMP280:** Temperature and Pressure (I2C3).
+  - **LDR:** Light intensity (ADC1_IN6).
+  - **Soil Moisture:** Raw capacitive/resistive probe (ADC1_IN5).
 - **Actuators:**
-  - **Fan:** Controls temperature and airflow (GPIO controlled).
-  - **Water Pump:** Automates irrigation based on soil moisture levels (GPIO controlled).
-  - **OLED (SSD1306):** Displays local real-time sensor data (connected via I2C1).
-- **Communication:**
-  - Sends sensor data to ESP32 via UART1.
-  - Receives remote commands from ESP32 via UART1.
+  - **Fan (PB1):** Cooling control.
+  - **Water Pump (PB0):** Irrigation control.
+  - **Plant Light (PA4):** Toggle-based growth light (100ms pulse logic).
+  - **OLED (SSD1306):** Local status display (I2C1).
 
 ### 2. Communication Bridge: ESP32-S
-The ESP32 serves as a transparent bridge between the STM32 and the internet.
-- **Protocol:** MQTT.
-- **Topics:**
-  - `stm32/sensors`: ESP32 publishes sensor data strings received from STM32 to this topic.
-  - `stm32/commands`: ESP32 subscribes to this topic and forwards any incoming commands from Node-RED to the STM32 via UART.
-- **Connection:** Connects to a local WiFi network and a Mosquitto MQTT broker.
+Serves as a transparent MQTT bridge.
+- **Protocol:** MQTT @ 1883.
+- **Serial Connection:** UART @ **152000 baud** (Custom high-speed).
+- **Telemetry Topic:** `stm32/sensors` (JSON format).
+- **Command Topic:** `stm32/commands` (Raw ID:Value strings).
 
-### 3. Backend & UI: Node-RED
-Node-RED provides the user interface and logic for remote monitoring and control.
-- **Monitoring:** Subscribes to `stm32/sensors` to display real-time gauges and charts.
-- **Control:** Sends commands (e.g., "PUMP_ON", "FAN_OFF") to the `stm32/commands` topic.
-- **Automation:** Can implement complex logic (e.g., historical data logging, alerts).
+### 3. Backend: Node-RED
+Handles data logging, remote UI dashboarding, and manual override logic.
 
-## Project Structure
-- `Core/`: STM32CubeIDE project source code (C).
-- `esp32_src/`: ESP32 bridge source code (Arduino/C++).
-- `node-red/`: Node-RED flow configuration files.
+## Command Reference (Node-RED -> STM32)
+Commands are sent as strings to the `stm32/commands` topic in the format `ID` or `ID:Value`.
 
-## Target Environment Goals
-- **Temperature:** Maintain within a safe range using the fan.
-- **Soil Moisture:** Prevent drying out by triggering the water pump.
-- **Monitoring:** Provide full visibility of the plant's status via both the local OLED and the Node-RED dashboard.
+| ID | Command | Description |
+| :--- | :--- | :--- |
+| **0 / 1** | Auto Mode | Disable (0) or Enable (1) automatic regulation. |
+| **2 / 3** | Pump Control | Force Pump OFF (2) or ON (3). Switches to Manual. |
+| **4 / 5** | Fan Control | Force Fan OFF (4) or ON (5). Switches to Manual. |
+| **6 / 7** | Light Control | Force Light OFF (6) or ON (7). Switches to Manual. |
+| **8 / 9** | Calibration | Calibrate Dry Point (8) or Wet Point (9). |
+| **10** | Reset Failsafe | Clears the "Pump Critical" error state. |
+| **11 - 16** | Thresholds | Set Soil Low/High, Temp Low/High, Light Low/High. |
+| **17 / 18** | Day/Night | Set Day Mode (17) or Night Mode (18) for light logic. |
+
+---
 
 # Hardware Pin Configuration
 
-This document outlines the pin connections for the Smart Plant IoT System, covering both the main STM32L432KC controller and the ESP32-S MQTT bridge.
-
 ## 1. STM32L432KC Connections
-
-The STM32 acts as the main controller. Wire your sensors and actuators to the following pins:
 
 | Component | STM32 Pin | Function | Notes |
 | :--- | :--- | :--- | :--- |
-| **Soil Moisture Sensor** | `PA0` | Analog Input (ADC1_IN5) | Reads raw moisture level (0-4095). |
-| **LDR (Light Sensor)** | `PA1` | Analog Input (ADC1_IN6) | Reads ambient light level (0-4095). |
-| **Water Pump** | `PB0` | Digital Output | Triggered low/high to turn pump on/off. (Use a relay or transistor). |
-| **Cooling Fan** | `PB1` | Digital Output | Triggered low/high to turn fan on/off. (Use a relay or transistor). |
-| **Plant Light** | `PA4` | Digital Output | Triggered low/high to turn light on/off. (Use a relay or transistor). |
-| **BMP280 Sensor** | `I2C3` (SCL/SDA) | I2C Communication | Temp, Humidity, Pressure data. Connect to hardware I2C3 pins. |
-| **OLED Display** | `I2C1` (SCL/SDA) | I2C Communication | SSD1306 Local display. Connect to hardware I2C1 pins. |
-| **ESP32 RX** | `UART1_TX` (e.g., PA9) | Serial TX | Sends JSON telemetry to the ESP32. |
-| **ESP32 TX** | `UART1_RX` (e.g., PA10) | Serial RX | Receives commands from the ESP32. |
+| **Soil Moisture** | `PA0` | ADC1_IN5 | Analog Raw. |
+| **LDR Sensor** | `PA1` | ADC1_IN6 | Analog Raw. |
+| **Water Pump** | `PB0` | Output | Active High. |
+| **Cooling Fan** | `PB1` | Output | Active High. |
+| **Plant Light** | `PA4` | Output | **Pulse Toggle** (100ms HIGH-LOW). |
+| **BMP280** | `I2C3` (PA7/PB4) | I2C | Temp/Pressure. |
+| **OLED (SSD1306)** | `I2C1` (PA9/PA10) | I2C | Local UI. |
+| **ESP32 Link** | `UART1` | 152000 baud | TX/RX to Bridge. |
 
-> **Note on Actuators:** Do not connect motors, fans, or high-power lights directly to the STM32 GPIO pins. The STM32 outputs 3.3V at low current. You **must** use a Relay Module, MOSFET, or Motor Driver board between the STM32 pins (`PB0`, `PB1`, `PA4`) and the actual actuators.
-
----
+> **Warning:** Use Optocouplers or Flyback Diodes for the Pump and Fan to protect the STM32 from inductive spikes.
 
 ## 2. ESP32-S Connections
-
-The ESP32 acts as a transparent serial-to-MQTT bridge. 
-
-| Component | ESP32 Pin | Function | Notes |
-| :--- | :--- | :--- | :--- |
-| **STM32 UART1_TX** | `GPIO 25` (RXD2) | Serial RX | Receives telemetry JSON from the STM32. |
-| **STM32 UART1_RX** | `GPIO 26` (TXD2) | Serial TX | Sends remote commands to the STM32. |
-
-> **Wiring Note:** Ensure that the STM32 and ESP32 share a common **GND** (Ground) connection so the serial communication works reliably.
-
----
-
-## Power Requirements
-- **STM32 & ESP32:** 3.3V logic (Can generally be powered via USB during dev, or a 5V/3.3V step-down module).
-- **Actuators (Pump, Fan, Light):** Likely require an external power supply (e.g., 5V, 9V, or 12V depending on the specific hardware you bought) connected through your relays/transistors.
+- **RXD2 (GPIO 25)** -> STM32 UART1_TX
+- **TXD2 (GPIO 26)** -> STM32 UART1_RX
+- **GND** -> Common Ground mandatory.
