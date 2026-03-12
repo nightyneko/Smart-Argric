@@ -3,7 +3,7 @@
 
 const char* ssid = "AZE02";
 const char* password = "qqqqqqqq";
-const char* mqtt_server = "192.168.58.204"; 
+const char* mqtt_server = ""; 
 const char* mqtt_user = "zero";
 const char* mqtt_pass = "hello123456";
 
@@ -74,10 +74,24 @@ void loop() {
     dataFromSTM32.trim(); 
     
     if (dataFromSTM32.length() > 0) {
-      Serial.print("From STM32: ");
-      Serial.println(dataFromSTM32);
-      // Publish JSON to MQTT
-      client.publish("stm32/sensors", dataFromSTM32.c_str());
+      int startIndex = dataFromSTM32.indexOf('{');
+      int endIndex = dataFromSTM32.lastIndexOf('}');
+
+      if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+        
+        String cleanJson = dataFromSTM32.substring(startIndex, endIndex + 1);
+        
+        Serial.print("From STM32 (Cleaned): ");
+        Serial.println(cleanJson);
+        
+        // Publish the cleaned JSON to MQTT
+        client.publish("stm32/sensors", cleanJson.c_str());
+        
+      } else {
+        // Optional: Log the ignored garbage data for debugging
+        Serial.print("Ignored non-JSON data: ");
+        Serial.println(dataFromSTM32);
+      }
     }
   }
 }

@@ -1,0 +1,1533 @@
+[
+    {
+        "id": "4a9a297681efb4e2",
+        "type": "tab",
+        "label": "Smart Plant Dashboard (Pro)",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "2d2a961d71e3b4ba",
+        "type": "mqtt-broker",
+        "name": "Local ESP32 Broker",
+        "broker": "localhost",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 15,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "08ee53a07d8a8039",
+        "type": "ui-base",
+        "name": "Plant System Pro",
+        "path": "/dashboard",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "navigationStyle": "default",
+        "titleBarStyle": "default"
+    },
+    {
+        "id": "c064871583327a1b",
+        "type": "ui-theme",
+        "name": "Default Theme",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094CE",
+            "bgPage": "#eeeeee",
+            "groupBg": "#ffffff",
+            "groupOutline": "#cccccc"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "4px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "94a29c49aadab39c",
+        "type": "ui-page",
+        "name": "System Overview",
+        "ui": "08ee53a07d8a8039",
+        "path": "/home",
+        "layout": "grid",
+        "theme": "c064871583327a1b",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": 0,
+                "cols": 3
+            },
+            {
+                "name": "Tablet",
+                "px": 576,
+                "cols": 6
+            },
+            {
+                "name": "Small Desktop",
+                "px": 768,
+                "cols": 9
+            },
+            {
+                "name": "Desktop",
+                "px": 1024,
+                "cols": 12
+            }
+        ],
+        "order": 1,
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "e4b278be3e75954e",
+        "type": "ui-group",
+        "name": "Live Gauges",
+        "page": "94a29c49aadab39c",
+        "width": "12",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
+        "id": "390494163d97c3bc",
+        "type": "ui-group",
+        "name": "Historical Charts & Stats",
+        "page": "94a29c49aadab39c",
+        "width": "8",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
+        "id": "5488f5cf4cba873e",
+        "type": "ui-group",
+        "name": "Settings & Controls",
+        "page": "94a29c49aadab39c",
+        "width": "4",
+        "order": 3
+    },
+    {
+        "id": "07e6c460726aceea",
+        "type": "mqtt in",
+        "z": "4a9a297681efb4e2",
+        "name": "STM32 Sensors",
+        "topic": "stm32/sensors",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "2d2a961d71e3b4ba",
+        "inputs": 0,
+        "x": 90,
+        "y": 220,
+        "wires": [
+            [
+                "9347bd513d7d9e6b"
+            ]
+        ]
+    },
+    {
+        "id": "9347bd513d7d9e6b",
+        "type": "function",
+        "z": "4a9a297681efb4e2",
+        "name": "Parse & Calculate Stats",
+        "func": "\nvar p = msg.payload;\n\n// Gauges with dynamic UI update properties for FlowFuse Dashboard\nvar msg_h = { \n    payload: p.h || 0, \n    topic: 'Health',\n    ui_update: { segments: [ { from: 0, color: \"#ea5353\" }, { from: 40, color: \"#ffc800\" }, { from: 80, color: \"#5cd65c\" } ] }\n};\n\nvar msg_s_gauge = { \n    payload: p.s || 0, \n    ui_update: { segments: [ { from: 0, color: \"#ea5353\" }, { from: p.sl || 30, color: \"#5cd65c\" }, { from: p.sh || 45, color: \"#ffc800\" } ] }\n};\nvar msg_s_chart = [ { payload: p.s || 0, topic: 'Soil Moisture' }, { payload: p.sl || 0, topic: 'Low Limit' }, { payload: p.sh || 0, topic: 'High Limit' } ];\n\n\nvar msg_t_gauge = { \n    payload: p.t || 0, \n    ui_update: { segments: [ { from: 0, color: \"#0094CE\" }, { from: p.tl || 28, color: \"#5cd65c\" }, { from: p.th || 30, color: \"#ea5353\" } ] }\n};\nvar msg_t_chart = [ { payload: p.t || 0, topic: 'Temperature' }, { payload: p.tl || 0, topic: 'Low Limit' }, { payload: p.th || 0, topic: 'High Limit' } ];\n\n\nvar msg_l_gauge = { \n    payload: p.l || 0, \n    ui_update: { segments: [ { from: 0, color: \"#ea5353\" }, { from: p.ll || 30, color: \"#5cd65c\" }, { from: p.lh || 50, color: \"#ffc800\" } ] }\n};\nvar msg_l_chart = [ { payload: p.l || 0, topic: 'Light' }, { payload: p.ll || 0, topic: 'Low Limit' }, { payload: p.lh || 0, topic: 'High Limit' } ];\n\n// Stats\nvar stat_h = { payload: \"Current Health: \" + (p.h||0) + \"%\" };\nvar stat_s = { payload: \"Current Soil: \" + (p.s||0) + \"%\" };\nvar stat_t = { payload: \"Current Temp: \" + (p.t||0) + \"°C\" };\nvar stat_l = { payload: \"Current Light: \" + (p.l||0) + \"%\" };\n\n// Status\nvar pf_status = p.pf ? \"CRITICAL: PUMP ERROR!\" : \"System Normal\";\nvar am_status = p.am ? \"AUTO\" : \"MANUAL\";\nvar day_status = p.day ? \"DAY MODE\" : \"NIGHT MODE\";\nvar msg_status = { payload: pf_status + \" | \" + am_status + \" | \" + day_status };\nvar msg_dry = { payload: p.dv };\nvar msg_wet = { payload: p.wv };\n\n\nvar act_status = { payload: \"Pump: \" + (p.p ? \"ON\" : \"OFF\") + \" | Fan: \" + (p.f ? \"ON\" : \"OFF\") + \" | Light: \" + (p.pl ? \"ON\" : \"OFF\") };\n\n// Threshold Texts - Force string conversion\nvar txt_sl = { payload: (p.sl || 0) + \"%\" };\nvar txt_sh = { payload: (p.sh || 0) + \"%\" };\nvar txt_tl = { payload: (p.tl || 0) + \"°C\" };\nvar txt_th = { payload: (p.th || 0) + \"°C\" };\nvar txt_ll = { payload: (p.ll || 0) + \"%\" };\nvar txt_lh = { payload: (p.lh || 0) + \"%\" };\n\nreturn [\n    msg_h, \n    [msg_s_gauge, ...msg_s_chart], \n    [msg_t_gauge, ...msg_t_chart], \n    [msg_l_gauge, ...msg_l_chart], \n    stat_h, stat_s, stat_t, stat_l, \n    msg_status, msg_dry, msg_wet, \n    txt_sl, txt_sh, txt_tl, txt_th, txt_ll, txt_lh, act_status\n];\n",
+        "outputs": 18,
+        "x": 320,
+        "y": 220,
+        "wires": [
+            [
+                "b3d72638aa437526",
+                "deb04df8fc8e4ed0"
+            ],
+            [
+                "872e5ce21a58c7d5",
+                "2f3a5dd35c54a15a"
+            ],
+            [
+                "fd3bb2d26c74de15",
+                "8a685163d911e437"
+            ],
+            [
+                "59228bb28c7d4faa",
+                "07b997b31208f93b"
+            ],
+            [
+                "0626836f2fa541d4"
+            ],
+            [
+                "2a01ee84dd27468f"
+            ],
+            [
+                "a33650ba933f3ada"
+            ],
+            [
+                "be771933af07fd9c"
+            ],
+            [
+                "28efbbb3e8b5019b"
+            ],
+            [
+                "68b8dbc0ef147450"
+            ],
+            [
+                "5a27326f72a5f42e"
+            ],
+            [
+                "28c53d51b4d3ef2a"
+            ],
+            [
+                "a0680cf50a3f9ba6"
+            ],
+            [
+                "ca7b0989e0992a82"
+            ],
+            [
+                "65c3e826e1c06b24"
+            ],
+            [
+                "324e9ec10cda3fdd"
+            ],
+            [
+                "d07a91f49565b4d8"
+            ],
+            [
+                "a06215aca481ee2e"
+            ]
+        ]
+    },
+    {
+        "id": "b3d72638aa437526",
+        "type": "ui-gauge",
+        "z": "4a9a297681efb4e2",
+        "name": "Health %",
+        "group": "e4b278be3e75954e",
+        "order": 1,
+        "value": "payload",
+        "valueType": "msg",
+        "width": 3,
+        "height": 3,
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "title": "Health",
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "units": "%",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "40.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "70.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "min": 0,
+        "max": 100,
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "x": 600,
+        "y": 40,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "872e5ce21a58c7d5",
+        "type": "ui-gauge",
+        "z": "4a9a297681efb4e2",
+        "name": "Soil %",
+        "group": "e4b278be3e75954e",
+        "order": 2,
+        "value": "payload",
+        "valueType": "msg",
+        "width": 3,
+        "height": 3,
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "title": "Soil Moisture",
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "units": "%",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "40.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "70.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "min": 0,
+        "max": 100,
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "x": 600,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fd3bb2d26c74de15",
+        "type": "ui-gauge",
+        "z": "4a9a297681efb4e2",
+        "name": "Temp C",
+        "group": "e4b278be3e75954e",
+        "order": 3,
+        "value": "payload",
+        "valueType": "msg",
+        "width": 3,
+        "height": 3,
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "title": "Temperature",
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "units": "°C",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "20.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "35.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "min": 0,
+        "max": 50,
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "x": 600,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "59228bb28c7d4faa",
+        "type": "ui-gauge",
+        "z": "4a9a297681efb4e2",
+        "name": "Light %",
+        "group": "e4b278be3e75954e",
+        "order": 4,
+        "value": "payload",
+        "valueType": "msg",
+        "width": 3,
+        "height": 3,
+        "gtype": "gauge-half",
+        "gstyle": "needle",
+        "title": "Light Intensity",
+        "alwaysShowTitle": false,
+        "floatingTitlePosition": "top-left",
+        "units": "%",
+        "icon": "",
+        "prefix": "",
+        "suffix": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#ea5353"
+            },
+            {
+                "from": "40.0",
+                "color": "#ffc800"
+            },
+            {
+                "from": "70.0",
+                "color": "#5cd65c"
+            }
+        ],
+        "min": 0,
+        "max": 100,
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "className": "",
+        "x": 600,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "deb04df8fc8e4ed0",
+        "type": "ui-chart",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "name": "Health Chart",
+        "label": "Health Chart",
+        "order": 1,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": 0,
+        "ymax": 100,
+        "action": "append",
+        "stackSeries": false,
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "width": 4,
+        "height": 4,
+        "interpolation": "linear",
+        "x": 600,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0626836f2fa541d4",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "order": 3,
+        "width": 4,
+        "name": "Health Stats",
+        "label": "Health Stats",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 600,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "2f3a5dd35c54a15a",
+        "type": "ui-chart",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "name": "Soil Chart",
+        "label": "Soil Chart",
+        "order": 2,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": 0,
+        "ymax": 100,
+        "action": "append",
+        "stackSeries": false,
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "width": 4,
+        "height": 4,
+        "interpolation": "linear",
+        "x": 600,
+        "y": 280,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2a01ee84dd27468f",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "order": 4,
+        "width": 4,
+        "name": "Soil Stats",
+        "label": "Soil Stats",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 600,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "8a685163d911e437",
+        "type": "ui-chart",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "name": "Temp Chart",
+        "label": "Temp Chart",
+        "order": 5,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": 0,
+        "ymax": 50,
+        "action": "append",
+        "stackSeries": false,
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "width": 4,
+        "height": 4,
+        "interpolation": "linear",
+        "x": 600,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a33650ba933f3ada",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "order": 7,
+        "width": 4,
+        "name": "Temp Stats",
+        "label": "Temp Stats",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 600,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "07b997b31208f93b",
+        "type": "ui-chart",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "name": "Light Chart",
+        "label": "Light Chart",
+        "order": 6,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "HH:mm:ss",
+        "xAxisFormatType": "auto",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": 0,
+        "ymax": 100,
+        "action": "append",
+        "stackSeries": false,
+        "pointShape": "circle",
+        "pointRadius": 4,
+        "showLegend": true,
+        "removeOlder": 24,
+        "removeOlderUnit": "3600",
+        "colors": [
+            "#0095ff",
+            "#ff0000",
+            "#ff7f0e",
+            "#2ca02c",
+            "#a347e1",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "width": 4,
+        "height": 4,
+        "interpolation": "linear",
+        "x": 600,
+        "y": 440,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "be771933af07fd9c",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "order": 8,
+        "width": 4,
+        "name": "Light Stats",
+        "label": "Light Stats",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 600,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "28efbbb3e8b5019b",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 1,
+        "width": 4,
+        "name": "System Status",
+        "label": "Status:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 600,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "68b8dbc0ef147450",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 13,
+        "width": 2,
+        "height": "",
+        "name": "Dry Cal Point",
+        "label": "Dry Cal Point:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "wrapText": false,
+        "className": "",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 600,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "5a27326f72a5f42e",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 15,
+        "width": 2,
+        "name": "Wet Cal Point",
+        "label": "Wet Cal Point:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "value": "payload",
+        "valueType": "msg",
+        "x": 590,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "6bf383c35c05a94b",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Auto ON",
+        "label": "Enable Auto Mode",
+        "order": 4,
+        "width": 4,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "1",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 300,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "e65b54a318173e9d",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Pump ON",
+        "label": "Pump ON",
+        "order": 7,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "3",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 340,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "cce699178f3f0e22",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Pump OFF",
+        "label": "Pump OFF",
+        "order": 8,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "2",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 380,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "9ce9741375894fb3",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Fan ON",
+        "label": "Fan ON",
+        "order": 9,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "5",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 420,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "0fd37b2b73d6d907",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Fan OFF",
+        "label": "Fan OFF",
+        "order": 10,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "4",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 460,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "c4eb6a37996d0d54",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Light ON",
+        "label": "Light ON",
+        "order": 11,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "7",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 500,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "29f2617647f47e72",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Light OFF",
+        "label": "Light OFF",
+        "order": 12,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "6",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 540,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "427187fbb8918b41",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Cal Dry",
+        "label": "Calibrate DRY (Air)",
+        "order": 14,
+        "width": 2,
+        "payload": "8",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 580,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "c48196f6b2c54388",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Cal Wet",
+        "label": "Calibrate WET (Water)",
+        "order": 16,
+        "width": 2,
+        "payload": "9",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "x": 100,
+        "y": 620,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "89bf21102c8694ba",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Reset FS",
+        "label": "Reset Pump Failsafe",
+        "order": 3,
+        "width": 4,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "10",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 130,
+        "y": 660,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "ab58e5cdfba1663c",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "390494163d97c3bc",
+        "name": "Reset Stats",
+        "label": "Reset Graph Stats",
+        "order": 9,
+        "width": 4,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "reset",
+        "payloadType": "str",
+        "topic": "",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 700,
+        "wires": [
+            [
+                "e50c99513bd6b6ee"
+            ]
+        ]
+    },
+    {
+        "id": "e50c99513bd6b6ee",
+        "type": "function",
+        "z": "4a9a297681efb4e2",
+        "name": "",
+        "func": "flow.set('plant_stats', undefined); return null;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 700,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f764dfa618f83a11",
+        "type": "mqtt out",
+        "z": "4a9a297681efb4e2",
+        "name": "STM32 Commands",
+        "topic": "stm32/commands",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "2d2a961d71e3b4ba",
+        "x": 800,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "36d81da8c4427977",
+        "type": "ui-slider",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Soil Low (%)",
+        "label": "Soil Low (%)",
+        "order": 18,
+        "width": 4,
+        "passthru": false,
+        "outs": "end",
+        "topic": "11",
+        "topicType": "str",
+        "thumbLabel": true,
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "x": 100,
+        "y": 800,
+        "wires": [
+            [
+                "b6ea04d9f2db1340"
+            ]
+        ]
+    },
+    {
+        "id": "3e930db39a61b891",
+        "type": "ui-slider",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Soil High (%)",
+        "label": "Soil High (%)",
+        "order": 20,
+        "width": 4,
+        "passthru": false,
+        "outs": "end",
+        "topic": "12",
+        "topicType": "str",
+        "thumbLabel": true,
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "x": 100,
+        "y": 840,
+        "wires": [
+            [
+                "b6ea04d9f2db1340"
+            ]
+        ]
+    },
+    {
+        "id": "df2ed5b6efa6eeaa",
+        "type": "ui-slider",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Temp Low (°C)",
+        "label": "Temp Low (°C)",
+        "order": 22,
+        "width": 4,
+        "passthru": false,
+        "outs": "end",
+        "topic": "13",
+        "topicType": "str",
+        "thumbLabel": true,
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "x": 100,
+        "y": 880,
+        "wires": [
+            [
+                "b6ea04d9f2db1340"
+            ]
+        ]
+    },
+    {
+        "id": "b85e0ce247af5fd3",
+        "type": "ui-slider",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Temp High (°C)",
+        "label": "Temp High (°C)",
+        "order": 24,
+        "width": 4,
+        "passthru": false,
+        "outs": "end",
+        "topic": "14",
+        "topicType": "str",
+        "thumbLabel": true,
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "x": 100,
+        "y": 920,
+        "wires": [
+            [
+                "b6ea04d9f2db1340"
+            ]
+        ]
+    },
+    {
+        "id": "4dff808c9f69e3a3",
+        "type": "ui-slider",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Light Low (%)",
+        "label": "Light Low (%)",
+        "order": 26,
+        "width": 4,
+        "passthru": false,
+        "outs": "end",
+        "topic": "15",
+        "topicType": "str",
+        "thumbLabel": true,
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "x": 100,
+        "y": 960,
+        "wires": [
+            [
+                "b6ea04d9f2db1340"
+            ]
+        ]
+    },
+    {
+        "id": "f2d1095b3b24e0ea",
+        "type": "ui-slider",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Light High (%)",
+        "label": "Light High (%)",
+        "order": 28,
+        "width": 4,
+        "passthru": false,
+        "outs": "end",
+        "topic": "16",
+        "topicType": "str",
+        "thumbLabel": true,
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "x": 100,
+        "y": 1000,
+        "wires": [
+            [
+                "b6ea04d9f2db1340"
+            ]
+        ]
+    },
+    {
+        "id": "b6ea04d9f2db1340",
+        "type": "function",
+        "z": "4a9a297681efb4e2",
+        "name": "Format Cmd",
+        "func": "\nif (msg.payload !== undefined && msg.payload !== null) {\n    // Extract actual numeric value if payload is an object\n    var val = typeof msg.payload === 'object' ? msg.payload.value || msg.payload : msg.payload;\n    msg.payload = msg.topic + ':' + String(val);\n    return msg;\n}\nreturn null;\n",
+        "outputs": 1,
+        "x": 300,
+        "y": 800,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "e2cb9da8f1ca0fdf",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Day Mode",
+        "label": "Set Day Mode (Auto Light ON)",
+        "order": 5,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "17",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 580,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "f983dfc97c506c72",
+        "type": "ui-button",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "name": "Night Mode",
+        "label": "Set Night Mode (Auto Light OFF)",
+        "order": 6,
+        "width": 2,
+        "height": "",
+        "emulateClick": false,
+        "className": "",
+        "icon": "",
+        "iconPosition": "left",
+        "payload": "18",
+        "payloadType": "str",
+        "topic": "stm32/commands",
+        "topicType": "str",
+        "buttonColor": "",
+        "textColor": "",
+        "iconColor": "",
+        "enableClick": true,
+        "enablePointerdown": false,
+        "pointerdownPayload": "",
+        "pointerdownPayloadType": "str",
+        "enablePointerup": false,
+        "pointerupPayload": "",
+        "pointerupPayloadType": "str",
+        "x": 100,
+        "y": 620,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "860d48cc66e8666f",
+        "type": "inject",
+        "z": "4a9a297681efb4e2",
+        "name": "Morning Schedule (06:00)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 06 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "17",
+        "payloadType": "str",
+        "x": 640,
+        "y": 760,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "2f9698324c6f0811",
+        "type": "inject",
+        "z": "4a9a297681efb4e2",
+        "name": "Night Schedule (20:00)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "00 20 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "18",
+        "payloadType": "str",
+        "x": 630,
+        "y": 680,
+        "wires": [
+            [
+                "f764dfa618f83a11"
+            ]
+        ]
+    },
+    {
+        "id": "28c53d51b4d3ef2a",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 17,
+        "width": 4,
+        "name": "ui_text_th_sl",
+        "label": "Soil Low Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 0,
+        "y": 0,
+        "wires": []
+    },
+    {
+        "id": "a0680cf50a3f9ba6",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 19,
+        "width": 4,
+        "name": "ui_text_th_sh",
+        "label": "Soil High Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 0,
+        "y": 0,
+        "wires": []
+    },
+    {
+        "id": "ca7b0989e0992a82",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 21,
+        "width": 4,
+        "name": "ui_text_th_tl",
+        "label": "Temp Low Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 0,
+        "y": 0,
+        "wires": []
+    },
+    {
+        "id": "65c3e826e1c06b24",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 23,
+        "width": 4,
+        "name": "ui_text_th_th",
+        "label": "Temp High Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 0,
+        "y": 0,
+        "wires": []
+    },
+    {
+        "id": "324e9ec10cda3fdd",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 25,
+        "width": 4,
+        "name": "ui_text_th_ll",
+        "label": "Light Low Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 120,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "d07a91f49565b4d8",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 27,
+        "width": 4,
+        "name": "ui_text_th_lh",
+        "label": "Light High Thresh:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 120,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "a06215aca481ee2e",
+        "type": "ui-text",
+        "z": "4a9a297681efb4e2",
+        "group": "5488f5cf4cba873e",
+        "order": 2,
+        "width": 4,
+        "name": "Actuators Status",
+        "label": "Actuators:",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "x": 300,
+        "y": 20,
+        "wires": []
+    },
+    {
+        "id": "a1519cf241666b9a",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "@flowfuse/node-red-dashboard": "1.30.2"
+        }
+    }
+]

@@ -82,7 +82,7 @@ uint8_t is_daytime = 1; // 1 = Day, 0 = Night (Sleep mode for light)
 
 // --- ADVANCED: Calibration Values ---
 int dry_val = 4095; // Default for air
-int wet_val = 1500; // Default for water
+int wet_val = 3500; // Default for water
 
 // Schmitt Trigger Thresholds
 int soil_low_threshold = 30;
@@ -91,6 +91,12 @@ float temp_high_threshold = 30.0;
 float temp_low_threshold = 28.0;
 int light_low_threshold = 30;
 int light_high_threshold = 50;
+const int SOIL_CRITICAL_LOW = 0;   // 0% moisture
+const int SOIL_CRITICAL_HIGH = 100; // 100% moisture (flooded)
+const int TEMP_CRITICAL_LOW = 0;   // 5 degrees C (freezing danger)
+const int TEMP_CRITICAL_HIGH = 50; // 45 degrees C (heat stroke danger)
+const int LIGHT_CRITICAL_LOW = 0;
+const int LIGHT_CRITICAL_HIGH = 100;
 
 // --- ADVANCED: Failsafe Variables ---
 uint32_t pump_start_tick = 0;
@@ -118,6 +124,8 @@ static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 uint16_t Read_ADC_Channel(uint32_t channel);
+int32_t constrain(int32_t value, int32_t min_val, int32_t max_val);
+int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 void Process_Command(char* cmd);
 /* USER CODE END PFP */
 
@@ -210,7 +218,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-          // --- 0. PROCESS UART DMA BUFFER ---
+
           uint16_t dma_write_ptr = DMA_RX_BUF_SIZE - __HAL_DMA_GET_COUNTER(&hdma_usart1_rx);
           while (dma_read_ptr != dma_write_ptr) {
               uint8_t c = dma_rx_buf[dma_read_ptr];
@@ -228,13 +236,13 @@ int main(void)
                       rx_index = 0;
                   }
               } else {
-                  // EMI Filter: Only accept numbers, colon, and period
+
                   if ((c >= '0' && c <= '9') || c == ':' || c == '.' || c == '-') {
                       if (rx_index < RX_BUF_SIZE - 1) {
                           rx_temp_buffer[rx_index++] = (uint8_t)c;
                       }
                   } else {
-                      rx_index = 0; // Clear on noise
+                      rx_index = 0;
                   }
               }
           }
@@ -242,7 +250,7 @@ int main(void)
           while (cmd_tail != cmd_head) {
               Process_Command(cmd_queue[cmd_tail]);
               cmd_tail = (cmd_tail + 1) % CMD_QUEUE_SIZE;
-              last_telemetry_time = HAL_GetTick() - 1000; // Force immediate screen update!
+              last_telemetry_time = HAL_GetTick() - 1000;
           }
 
           // --- 1. READ THE SENSORS ---
@@ -263,15 +271,39 @@ int main(void)
           if (light_perc < 0)   { light_perc = 0; }
 
           // --- 3. HEALTH SCORING LOGIC ---
-          health_score = 100;
-          if (soil_perc < soil_low_threshold) health_score -= 20; 
-          if (soil_perc > soil_high_threshold) health_score -= 10; 
-          if (temperature > temp_high_threshold) health_score -= 20; 
-          if (temperature < temp_low_threshold) health_score -= 10;
-          if (light_perc < light_low_threshold) health_score -= 10;
-          if (light_perc > light_high_threshold) health_score -= 5;
-          if (pump_failsafe) health_score = 0; 
-          if (health_score < 0) health_score = 0;
+
+          int soil_score = 100;
+          if (soil_perc < soil_low_threshold) {
+            soil_score = map(soil_perc, SOIL_CRITICAL_LOW, soil_low_threshold, 0, 100);
+          } else if (soil_perc > soil_high_threshold) {
+            soil_score = map(soil_perc, soil_high_threshold, SOIL_CRITICAL_HIGH, 100, 0);
+          }
+          soil_score = constrain(soil_score, 0, 100);
+
+          int temp_score = 100;
+          if (temperature < temp_low_threshold) {
+            temp_score = map(temperature, TEMP_CRITICAL_LOW, temp_low_threshold, 0, 100);
+          } else if (temperature > temp_high_threshold) {
+            temp_score = map(temperature, temp_high_threshold, TEMP_CRITICAL_HIGH, 100, 0);
+          }
+          temp_score = constrain(temp_score, 0, 100);
+
+          int light_score = 100;
+          if (light_perc < light_low_threshold) {
+            light_score = map(light_perc, LIGHT_CRITICAL_LOW, light_low_threshold, 0, 100);
+          } else if (light_perc > light_high_threshold) {
+            // Assuming 100% light is the absolute max, but just slightly too bright
+            light_score = map(light_perc,LIGHT_CRITICAL_HIGH, light_high_threshold, 100, 0); // Doesn't drop to 0, just to 50
+          }
+          light_score = constrain(light_score, 0, 100);
+
+          // Apply Biological Weighting
+          // Soil and Water are usually the most critical, followed by temp, then light.
+          // The weights must add up to 1.0 (100%)
+          float final_health = (soil_score * 0.50) + (temp_score * 0.35) + (light_score * 0.15);
+
+          // Final output
+          int health_score = (int)final_health;
 
           // --- 4. AUTOMATION & FAILSAFE LOGIC ---
           if (auto_mode && !pump_failsafe) {
@@ -369,9 +401,9 @@ int main(void)
               ssd1306_UpdateScreen();
 
               if (tx_complete) {
-                  sprintf(json_tx_buffer, "{\"s\":%d,\"l\":%d,\"t\":%.1f,\"p\":%d,\"f\":%d,\"pl\":%d,\"am\":%d,\"h\":%d,\"sl\":%d,\"sh\":%d,\"th\":%.1f,\"tl\":%.1f,\"ll\":%d,\"lh\":%d,\"pf\":%d,\"dv\":%d,\"wv\":%d,\"day\":%d}\n", 
+                  sprintf(json_tx_buffer, "{\"s\":%d,\"l\":%d,\"t\":%.1f,\"p\":%d,\"f\":%d,\"pl\":%d,\"am\":%d,\"h\":%d,\"sl\":%d,\"sh\":%d,\"th\":%.1f,\"tl\":%.1f,\"ll\":%d,\"lh\":%d,\"pf\":%d,\"dv\":%d,\"wv\":%d,\"day\":%d,\"c\":\"%s\"}\n", 
                           soil_perc, light_perc, temperature, pump_state, fan_state, light_state, auto_mode, health_score,
-                          soil_low_threshold, soil_high_threshold, temp_high_threshold, temp_low_threshold, light_low_threshold, light_high_threshold, pump_failsafe, dry_val, wet_val, is_daytime);
+                          soil_low_threshold, soil_high_threshold, temp_high_threshold, temp_low_threshold, light_low_threshold, light_high_threshold, pump_failsafe, dry_val, wet_val, is_daytime, last_cmd);
 
                   tx_complete = 0; // Lock the flag
 
@@ -933,6 +965,21 @@ void Process_Command(char* cmd) {
         default:
             break;
     }
+}
+int32_t constrain(int32_t value, int32_t min_val, int32_t max_val) {
+    if (value < min_val) return min_val;
+    if (value > max_val) return max_val;
+    return value;
+}
+
+// Function for linear interpolation (replaces Arduino map)
+// Uses integer math to save processing cycles on the microcontroller
+int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) {
+    // Failsafe: Prevent division by zero if input ranges are accidentally identical
+    if (in_max == in_min) {
+        return out_min;
+    }
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {

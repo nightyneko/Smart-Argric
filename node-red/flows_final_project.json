@@ -151,18 +151,10 @@
                 "ui_gauge_light_pro",
                 "ui_chart_light_pro"
             ],
-            [
-                "ui_text_stat_h"
-            ],
-            [
-                "ui_text_stat_s"
-            ],
-            [
-                "ui_text_stat_t"
-            ],
-            [
-                "ui_text_stat_l"
-            ],
+            [],
+            [],
+            [],
+            [],
             [
                 "ui_text_status_pro"
             ],
@@ -289,7 +281,7 @@
         "className": "",
         "width": "3",
         "height": "3",
-        "order": 3
+        "order": 2
     },
     {
         "id": "ui_gauge_temp_pro",
@@ -337,7 +329,7 @@
         "className": "",
         "width": "3",
         "height": "3",
-        "order": 4
+        "order": 3
     },
     {
         "id": "ui_gauge_light_pro",
@@ -385,7 +377,7 @@
         "className": "",
         "width": "3",
         "height": "3",
-        "order": 2
+        "order": 4
     },
     {
         "id": "ui_chart_health_pro",
@@ -435,24 +427,6 @@
         "order": 1
     },
     {
-        "id": "ui_text_stat_h",
-        "type": "ui-text",
-        "z": "tab_plant_iot_pro",
-        "group": "ui_group_charts",
-        "name": "Health Stats",
-        "label": "Health Stats",
-        "format": "{{msg.payload}}",
-        "value": "payload",
-        "valueType": "msg",
-        "layout": "row-spread",
-        "x": 600,
-        "y": 240,
-        "wires": [],
-        "width": "8",
-        "order": 5,
-        "height": "1"
-    },
-    {
         "id": "ui_chart_soil_pro",
         "type": "ui-chart",
         "z": "tab_plant_iot_pro",
@@ -497,25 +471,7 @@
         "stackSeries": false,
         "ymin": 0,
         "ymax": 100,
-        "order": 3
-    },
-    {
-        "id": "ui_text_stat_s",
-        "type": "ui-text",
-        "z": "tab_plant_iot_pro",
-        "group": "ui_group_settings",
-        "name": "Soil Stats",
-        "label": "Soil Stats",
-        "format": "{{msg.payload}}",
-        "value": "payload",
-        "valueType": "msg",
-        "layout": "row-spread",
-        "x": 600,
-        "y": 320,
-        "wires": [],
-        "width": "4",
-        "order": 10,
-        "height": "1"
+        "order": 2
     },
     {
         "id": "ui_chart_temp_pro",
@@ -562,25 +518,7 @@
         "stackSeries": false,
         "ymin": 0,
         "ymax": 50,
-        "order": 4
-    },
-    {
-        "id": "ui_text_stat_t",
-        "type": "ui-text",
-        "z": "tab_plant_iot_pro",
-        "group": "ui_group_settings",
-        "name": "Temp Stats",
-        "label": "Temp Stats",
-        "format": "{{msg.payload}}",
-        "value": "payload",
-        "valueType": "msg",
-        "layout": "row-spread",
-        "x": 600,
-        "y": 400,
-        "wires": [],
-        "width": "4",
-        "order": 12,
-        "height": "1"
+        "order": 3
     },
     {
         "id": "ui_chart_light_pro",
@@ -627,25 +565,7 @@
         "stackSeries": false,
         "ymin": 0,
         "ymax": 100,
-        "order": 2
-    },
-    {
-        "id": "ui_text_stat_l",
-        "type": "ui-text",
-        "z": "tab_plant_iot_pro",
-        "group": "ui_group_settings",
-        "name": "Light Stats",
-        "label": "Light Stats",
-        "format": "{{msg.payload}}",
-        "value": "payload",
-        "valueType": "msg",
-        "layout": "row-spread",
-        "x": 600,
-        "y": 480,
-        "wires": [],
-        "width": "4",
-        "order": 9,
-        "height": "1"
+        "order": 4
     },
     {
         "id": "ui_text_status_pro",
@@ -717,10 +637,11 @@
         "y": 300,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 20,
         "height": "1"
     },
@@ -740,10 +661,11 @@
         "y": 340,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 30,
         "height": "1"
     },
@@ -763,10 +685,11 @@
         "y": 380,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 29,
         "height": "1"
     },
@@ -786,10 +709,11 @@
         "y": 420,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 25,
         "height": "1"
     },
@@ -809,10 +733,11 @@
         "y": 460,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 24,
         "height": "1"
     },
@@ -832,10 +757,11 @@
         "y": 500,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 27,
         "height": "1"
     },
@@ -855,10 +781,11 @@
         "y": 540,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 26,
         "height": "1"
     },
@@ -878,10 +805,11 @@
         "y": 580,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 21,
         "height": "1"
     },
@@ -901,10 +829,11 @@
         "y": 620,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 22,
         "height": "1"
     },
@@ -924,10 +853,11 @@
         "y": 660,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 31,
         "height": "1"
     },
@@ -945,10 +875,11 @@
         "y": 700,
         "wires": [
             [
-                "fn_cmd_reset_stats"
+                "fn_cmd_reset_stats",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 32,
         "height": "1"
     },
@@ -1181,10 +1112,11 @@
         "y": 580,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 23,
         "height": "1"
     },
@@ -1204,10 +1136,11 @@
         "y": 620,
         "wires": [
             [
-                "mqtt_out_cmd_pro"
+                "mqtt_out_cmd_pro",
+                "logic_latency_calc"
             ]
         ],
-        "width": "2",
+        "width": "4",
         "order": 28,
         "height": "1"
     },
@@ -1359,5 +1292,70 @@
         "width": "4",
         "order": 7,
         "height": "1"
+    },
+    {
+        "id": "logic_dynamic_gauges",
+        "type": "function",
+        "z": "tab_plant_iot_pro",
+        "name": "Dynamic Gauge Logic",
+        "func": "\n// 1. Get telemetry data\nconst d = msg.payload;\n\n// 2. Ensure we have valid numbers for sensor values\nconst soil_val = parseFloat(d.s);\nconst temp_val = parseFloat(d.t);\nconst light_val = parseFloat(d.l);\n\n// 3. Define Segments (from values MUST be numbers)\nconst sl = parseFloat(d.sl) || 30;\nconst sh = parseFloat(d.sh) || 45;\nconst tl = parseFloat(d.tl) || 25;\nconst th = parseFloat(d.th) || 30;\nconst ll = parseFloat(d.ll) || 20;\nconst lh = parseFloat(d.lh) || 80;\n\nconst soil_segments = [\n    { from: 0, color: \"#ff3b30\" },   // Red (Dry)\n    { from: sl, color: \"#4cd964\" },  // Green (Good)\n    { from: sh, color: \"#ffcc00\" }   // Yellow (Wet)\n];\n\nconst temp_segments = [\n    { from: 0, color: \"#007aff\" },   // Blue (Cold)\n    { from: tl, color: \"#4cd964\" },  // Green (Ideal)\n    { from: th, color: \"#ff3b30\" }   // Red (Hot)\n];\n\nconst light_segments = [\n    { from: 0, color: \"#5856d6\" },   // Purple (Dark)\n    { from: ll, color: \"#4cd964\" },  // Green (Ideal)\n    { from: lh, color: \"#ffcc00\" }   // Yellow (Bright)\n];\n\n// 4. Return separate messages for each gauge\n// We send the REAL VALUE as payload and explicitly set msg.ui_update\nreturn [\n    { payload: soil_val, ui_update: { segments: soil_segments } },\n    { payload: temp_val, ui_update: { segments: temp_segments } },\n    { payload: light_val, ui_update: { segments: light_segments } },\n    { payload: d.h } // Health score\n];\n",
+        "outputs": 4,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 200,
+        "wires": [
+            [
+                "ui_gauge_soil_pro"
+            ],
+            [
+                "ui_gauge_temp_pro"
+            ],
+            [
+                "ui_gauge_light_pro"
+            ],
+            [
+                "ui_gauge_health_pro"
+            ]
+        ]
+    },
+    {
+        "id": "ui_text_latency",
+        "type": "ui-text",
+        "z": "tab_plant_iot_pro",
+        "group": "ui_group_settings",
+        "order": 10,
+        "width": "4",
+        "height": "1",
+        "name": "Latency Display",
+        "label": "Action Latency:",
+        "format": "{{msg.payload}} ms",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#00FF00"
+    },
+    {
+        "id": "logic_latency_calc",
+        "type": "function",
+        "z": "tab_plant_iot_pro",
+        "name": "Calculate Latency",
+        "func": "\n// If this message came from a UI Button click\nif (msg.topic === \"stm32/commands\") {\n    flow.set(\"last_click_time\", Date.now());\n    return null; // Don't update UI yet\n}\n\n// If this message came from STM32 telemetry (Parse JSON node)\nconst lastClick = flow.get(\"last_click_time\");\nconst lastCmd = msg.payload.c; // The 'C:' value from STM32 JSON\n\nif (lastClick && lastCmd !== \"WAIT\") {\n    const latency = Date.now() - lastClick;\n    flow.set(\"last_click_time\", null); // Reset\n    return { payload: latency };\n}\nreturn null;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 300,
+        "wires": [
+            [
+                "ui_text_latency"
+            ]
+        ]
     }
 ]
